@@ -1,89 +1,166 @@
-#Airline Passenger Time Series Forecast
-library(forecast)
-library(fpp)
-library(smooth)
 library(readxl)
-Airlines<-read.csv("C:/Users/tussh/Documents/Forecasting/Airlines.csv") # read the Airlines data
-View(Airlines) # Seasonality 12 months 
-windows()
-plot(Airlines$Passengers,type="o")
-# So creating 12 dummy variables 
-X<- data.frame(outer(rep(month.abb,length = 96), month.abb,"==") + 0 )# Creating dummies for 12 months
-# View(X)
-colnames(X)<-month.abb # Assigning month names 
-# View(X)
-AirlinesData<-cbind(Airlines,X)
-View(AirlinesData)
-colnames(AirlinesData)
-AirlinesData["t"]<- 1:96
-View(AirlinesData)
-AirlinesData["log_Passenger"]<-log(AirlinesData["Passengers"])
-AirlinesData["t_square"]<-AirlinesData["t"]*AirlinesData["t"]
-attach(AirlinesData)
-train<-AirlinesData[1:84,]
-test<-AirlinesData[85:96,]
-########################### LINEAR MODEL #############################
-linear_model<-lm(Passengers~t,data=train)
-summary(linear_model)
-linear_pred<-data.frame(predict(linear_model,interval='predict',newdata =test))
-View(linear_pred)
-rmse_linear<-sqrt(mean((test$Passengers-linear_pred$fit)^2,na.rm = T))
-rmse_linear # 53.19924
-######################### Exponential #################################
-expo_model<-lm(log_Passenger~t,data=train)
-summary(expo_model)
-expo_pred<-data.frame(predict(expo_model,interval='predict',newdata=test))
-rmse_expo<-sqrt(mean((test$Passengers-exp(expo_pred$fit))^2,na.rm = T))
-rmse_expo # 46.05736  and Adjusted R2 - 82.18 %
-######################### Quadratic ####################################
-Quad_model<-lm(Passengers~t+t_square,data=train)
-summary(Quad_model)
-Quad_pred<-data.frame(predict(Quad_model,interval='predict',newdata=test))
-rmse_Quad<-sqrt(mean((test$Passengers-Quad_pred$fit)^2,na.rm=T))
-rmse_Quad # 48.05189 and Adjusted R2 - 79.12%
-######################### Additive Seasonality #########################
-sea_add_model<-lm(Passengers~Jan+Feb+Mar+Apr+May+Jun+Jul+Aug+Sep+Oct+Nov,data=train)
-summary(sea_add_model)
-sea_add_pred<-data.frame(predict(sea_add_model,newdata=test,interval='predict'))
-rmse_sea_add<-sqrt(mean((test$Passengers-sea_add_pred$fit)^2,na.rm = T))
-rmse_sea_add # 132.8198
-######################## Additive Seasonality with Linear #################
-Add_sea_Linear_model<-lm(Passengers~t+Jan+Feb+Mar+Apr+May+Jun+Jul+Aug+Sep+Oct+Nov,data=train)
-summary(Add_sea_Linear_model)
-Add_sea_Linear_pred<-data.frame(predict(Add_sea_Linear_model,interval='predict',newdata=test))
-rmse_Add_sea_Linear<-sqrt(mean((test$Passengers-Add_sea_Linear_pred$fit)^2,na.rm=T))
-rmse_Add_sea_Linear # 35.34896 and Adjusted R2 - 94.75%
-######################## Additive Seasonality with Quadratic #################
-Add_sea_Quad_model<-lm(Passengers~t+t_square+Jan+Feb+Mar+Apr+May+Jun+Jul+Aug+Sep+Oct+Nov,data=train)
-summary(Add_sea_Quad_model)
-Add_sea_Quad_pred<-data.frame(predict(Add_sea_Quad_model,interval='predict',newdata=test))
-rmse_Add_sea_Quad<-sqrt(mean((test$Passengers-Add_sea_Quad_pred$fit)^2,na.rm=T))
-rmse_Add_sea_Quad # 26.36082 and Adjusted R2 - 95.24%
-######################## Multiplicative Seasonality #########################
-multi_sea_model<-lm(log_Passenger~Jan+Feb+Mar+Apr+May+Jun+Jul+Aug+Sep+Oct+Nov,data = train)
-summary(multi_sea_model)
-multi_sea_pred<-data.frame(predict(multi_sea_model,newdata=test,interval='predict'))
-rmse_multi_sea<-sqrt(mean((test$Passengers-exp(multi_sea_pred$fit))^2,na.rm = T))
-rmse_multi_sea # 140.0632
-######################## Multiplicative Seasonality Linear trend ##########################
-multi_add_sea_model<-lm(log_Passenger~t+Jan+Feb+Mar+Apr+May+Jun+Jul+Aug+Sep+Oct+Nov,data = train)
-summary(multi_add_sea_model)
-multi_add_sea_pred<-data.frame(predict(multi_add_sea_model,newdata=test,interval='predict'))
-rmse_multi_add_sea<-sqrt(mean((test$Passengers-exp(multi_add_sea_pred$fit))^2,na.rm = T))
-rmse_multi_add_sea # 10.51917 and Adjusted R2 - 97.23%
-# Preparing table on model and it's RMSE values 
-table_rmse<-data.frame(c("rmse_linear","rmse_expo","rmse_Quad","rmse_sea_add","rmse_Add_sea_Quad","rmse_multi_sea","rmse_multi_add_sea"),c(rmse_linear,rmse_expo,rmse_Quad,rmse_sea_add,rmse_Add_sea_Quad,rmse_multi_sea,rmse_multi_add_sea))
-View(table_rmse)
-colnames(table_rmse)<-c("model","RMSE")
-View(table_rmse)
-# Multiplicative Seasonality Linear trend  has least RMSE value
-new_model<-lm(log_Passenger~t+Jan+Feb+Mar+Apr+May+Jun+Jul+Aug+Sep+Oct+Nov,data = AirlinesData)
-new_model_pred<-data.frame(predict(new_model,newdata=AirlinesData,interval='predict'))
-new_model_fin <- exp(new_model$fitted.values)
-View(new_model_fin)
-pred_res<- predict(arima(log_Passenger,order=c(1,0,0)),n.ahead = 12)
-Month <- as.data.frame(Airlines$Month)
-Final <- as.data.frame(cbind(Month,AirlinesData$Passengers,new_model_fin))
-colnames(Final) <-c("Month","Passengers","New_Pred_Value")
-Final <- as.data.frame(Final)
-View(Final)# plot(Final$new_model_fin,type="o")
+Airlines <- read_excel("C:/Users/tussh/Documents/Hirachical Clustering/EastWestAirlines.xlsx", sheet = 2)
+summary(Airlines)
+View(Airlines)
+
+#normalize data.EDA exploratory data analysis.
+normalize<-function(x){
+  return ( (x-min(x))/(max(x)-min(x)))
+}
+normalized_data<-as.data.frame(lapply(Airlines[,2:11],normalize))
+summary(normalized_data)
+cor(normalized_data)
+?scale
+
+normalized_data <- scale(Airlines[,2:11]) #excluding the ID column before normalizing
+summary(normalized_data)
+
+d <- dist(normalized_data, method = "euclidean")# distance matrix
+fit <- hclust(d, method="complete") # linkage = avg or centroid or complete or single
+?hclust
+?dist
+plot(fit) # display dendrogram
+plot(fit, hang=-1)
+groups <- cutree(fit, k=5) # cut tree into 5 clusters
+
+?cutree
+rect.hclust(fit, k=5, border="blue")
+?rect.hclust
+
+milegeoffers<-as.matrix(groups) #group to which cluster they belong
+
+final <- data.frame(Airlines, milegeoffers)
+final <- final[c("milegeoffers","Balance","Qual_miles","cc1_miles","cc2_miles","cc3_miles","Bonus_miles","Bonus_trans","Flight_miles_12mo","Flight_trans_12","Days_since_enroll","Awards")]#Shift membershipt to the first column
+View(final)
+#final1 <- final[,c(ncol(final),1:(ncol(final)-1))] #shifting the final1 to 1st column
+
+aggregate(Airlines[,2:11], by=list(final$milegeoffers), FUN=mean) #to find mean of all the variables.
+
+#stability of the model & balance is used as one of variable
+require(caTools)
+set.seed(105) 
+?set.seed
+sample = sample.split(Airlines$Balance, SplitRatio = .70)
+Airlines1= subset(Airlines, sample == TRUE)
+test  = subset(Airlines, sample == FALSE)
+View(Airlines1)
+
+
+normalize<-function(x){
+  return ( (x-min(x))/(max(x)-min(x)))
+}
+normalized_data<-as.data.frame(lapply(Airlines1[,2:11],normalize))
+summary(normalized_data)
+cor(normalized_data)
+?scale
+
+normalized_data <- scale(Airlines1[,2:11]) #excluding the university name columnbefore normalizing
+summary(normalized_data)
+
+d <- dist(normalized_data, method = "euclidean")# distance matrix
+fit <- hclust(d, method="average") # linkage = avg or centroid or complete or single
+?hclust
+?dist
+plot(fit) # display dendrogram
+plot(fit, hang=-1)
+groups <- cutree(fit, k=5) # cut tree into 5 clusters
+
+?cutree
+rect.hclust(fit, k=5, border="red")
+?rect.hclust
+
+milegeoffers<-as.matrix(groups) #group to which cluster they belong
+
+final <- data.frame(Airlines1, milegeoffers)
+final <- final[c("milegeoffers","Balance","Qual_miles","cc1_miles","cc2_miles","cc3_miles","Bonus_miles","Bonus_trans","Flight_miles_12mo","Flight_trans_12","Days_since_enroll","Awards")]#Shift membershipt to the first column
+View(final)
+#final1 <- final[,c(ncol(final),1:(ncol(final)-1))] #shifting the final1 to 1st column
+
+aggregate(Airlines1[,2:11], by=list(final$milegeoffers), FUN=mean) #to find mean of all the variables.
+
+
+
+
+
+
+
+?write.xlsx
+
+write.csv(final, file="final1.csv")#after samplesplit & clustering write the final file write.csv
+
+getwd()
+
+
+
+########################## K means clustering################
+
+install.packages("plyr")#For data manupulation 
+library(plyr)
+
+x <-  runif(50) # generating 50 random numbers or rnorm for normal distribution.
+x
+
+y <-  runif(50) # generating 50 random numbers 
+y
+
+data <- cbind(x,y) 
+data
+
+plot(data)
+
+plot(data, type="n")
+text(data, rownames(data))
+
+km <- kmeans(data,4)
+#km <- kmeans(data,49) #kmeans clustering
+str(km)
+
+install.packages("animation")
+library(animation)
+
+km <- kmeans.ani(data, 4)
+km$centers
+
+
+#input <- read.xlsx("~/Desktop/Datasets_BA 2/Universities_Clustering.xlsx",1)
+#mydata <- input[1:25,c(1,3:8)]
+Airlines= read_excel("C:/Users/tussh/Documents/Hirachical Clustering/EastWestAirlines.xlsx", sheet = 2)
+#input = read.csv(file.choose())
+
+normalized_data <- scale(Airlines[,2:7])
+fit <- kmeans(normalized_data, 4) # 4 cluster solution
+str(fit)
+final2<- data.frame(Airlines, fit$cluster) # append cluster membership
+final2
+
+final3 <- final2[,c(ncol(final2),1:(ncol(final2)-1))]#or mention the index number or variable names
+
+aggregate(Airlines[,2:7], by=list(fit$cluster), FUN=mean) #find the mean of each variables.
+
+#elbow curve & k ~ sqrt(n/2) to decide the k value
+
+#wss = (nrow(normalized_data)-1)*sum(apply(normalized_data, 2, var))		 # Determine number of clusters by scree-plot 
+twss = c()
+for (i in 1:8) twss[i] = sum(kmeans(normalized_data, centers=i)$withinss)
+plot(1:8, twss, type="b", xlab="Number of Clusters", ylab="Within groups sum of squares")   # Look for an "elbow" in the scree plot #
+title(sub = "K-Means Clustering Scree-Plot")
+
+km$withinss
+###########Clara methos #############
+
+
+# k clustering alternative for large dataset - Clustering Large Applications (Clara)
+install.packages("cluster")
+library(cluster)
+xds <- rbind(cbind(rnorm(5000, 0, 8), rnorm(5000, 0, 8)), cbind(rnorm(5000, 50, 8), rnorm(5000, 50, 8)))
+xcl <- clara(xds, 2, sample = 100)
+clusplot(xcl)
+
+
+################Pam######################
+
+#Partitioning around medoids or pam
+xpm <- pam(xds, 2)
+clusplot(xpm)
+
+
